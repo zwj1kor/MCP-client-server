@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple MCP Client</title>
+    <script src="https://cdn.jsdelivr.net/npm/@modelcontextprotocol/sdk@1.0.4/dist/index.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* d */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .status-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #dc3545;
+            margin-right: 10px;
+        }
+        
+        .status-dot.connected {
+            background: #28a745;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            margin: 5px 0 15px 0;
+            font-size: 14px;
+        }
+        
+        label {
+            display: block;
+            margin-top: 10px;
+            color: #495057;
+            font-weight: 500;
+        }
+        
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #28a745;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            display: none;
+        }
+        
+        .result.visible {
+            display: block;
+        }
+        
+        .result.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .tool-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🚀 MCP Client - Direct Server Access [v2.0]</h1>
+            
+            <div class="note">
+                <strong>Note:</strong> This client runs on <code>http://localhost:8000</code> and makes API calls to the backend server at <code>http://localhost:8001</code>
+            </div>
+            
+            <div class="status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Server: http://localhost:8001</span>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <div class="tool-card">
+                <h2>🌤️ Weather</h2>
+                <label>City:</label>
+                <input type="text" id="city" value="London">
+                <button onclick="getWeather()">Get Weather</button>
+                <div id="weatherResult" class="result"></div>
+            </div>
+            
+            <div class="tool-card">
+                <h2>🔢 Calculator</h2>
+                <label>Operation:</label>
+                <select id="operation">
+                    <option value="add">Add (+)</option>
+                    <option value="subtract">Subtract (-)</option>
+                    <option value="multiply">Multiply (*)</option>
+                    <option value="divide">Divide (/)</option>
+                </select>
+                <label>Number A:</label>
+                <input type="number" id="numA" value="10">
+                <label>Number B:</label>
+                <input type="number" id="numB" value="5">
+                <button onclick="calculate()">Calculate</button>
+                <div id="calcResult" class="result"></div>
+            </div>
+            
+            <div class="tool-card">
+                <h2>🕐 Current Time</h2>
+                <label>Timezone:</label>
+                <input type="text" id="timezone" value="UTC" placeholder="e.g., America/New_York">
+                <button onclick="getTime()">Get Time</button>
+                <div id="timeResult" class="result"></div>
+            </div>
+            
+            <div class="tool-card">
+                <h2>💱 Currency Converter</h2>
+                <label>Amount:</label>
+                <input type="number" id="amount" value="100">
+                <label>From:</label>
+                <select id="fromCurrency">
+                    <option value="USD" selected>USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="JPY">JPY</option>
+                    <option value="CAD">CAD</option>
+                    <option value="AUD">AUD</option>
+                </select>
+                <label>To:</label>
+                <select id="toCurrency">
+                    <option value="USD">USD</option>
+                    <option value="EUR" selected>EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="JPY">JPY</option>
+                    <option value="CAD">CAD</option>
+                    <option value="AUD">AUD</option>
+                </select>
+                <button onclick="convertCurrency()">Convert</button>
+                <div id="currencyResult" class="result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://localhost:8001';
+        
+        // Direct tool calls without MCP protocol - using custom HTTP routes
+        async function callTool(toolName, params) {
+            try {
+                const response = await fetch(`${BASE_URL}/tools/${toolName}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(params)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.text();
+                return result;
+            } catch (error) {
+                throw new Error(`Tool call failed: ${error.message}`);
+            }
+        }
+        
+        async function getWeather() {
+            const city = document.getElementById('city').value;
+            const resultDiv = document.getElementById('weatherResult');
+            
+            console.log('Getting weather for:', city);
+            try {
+                const result = await callTool('get_weather', { city });
+                console.log('Weather result:', result);
+                resultDiv.textContent = result;
+                resultDiv.className = 'result visible';
+            } catch (error) {
+                console.error('Weather error:', error);
+                resultDiv.textContent = `Error: ${error.message}`;
+                resultDiv.className = 'result visible error';
+            }
+        }
+        
+        async function calculate() {
+            const operation = document.getElementById('operation').value;
+            const a = parseFloat(document.getElementById('numA').value);
+            const b = parseFloat(document.getElementById('numB').value);
+            const resultDiv = document.getElementById('calcResult');
+            
+            console.log('Calculating:', operation, a, b);
+            try {
+                const result = await callTool('calculate', { operation, a, b });
+                console.log('Calculation result:', result);
+                resultDiv.textContent = result;
+                resultDiv.className = 'result visible';
+            } catch (error) {
+                console.error('Calculation error:', error);
+                resultDiv.textContent = `Error: ${error.message}`;
+                resultDiv.className = 'result visible error';
+            }
+        }
+        
+        async function getTime() {
+            const timezone = document.getElementById('timezone').value;
+            const resultDiv = document.getElementById('timeResult');
+            
+            console.log('Getting time for timezone:', timezone);
+            try {
+                const result = await callTool('get_time', { timezone });
+                console.log('Time result:', result);
+                resultDiv.textContent = result;
+                resultDiv.className = 'result visible';
+            } catch (error) {
+                console.error('Time error:', error);
+                resultDiv.textContent = `Error: ${error.message}`;
+                resultDiv.className = 'result visible error';
+            }
+        }
+        
+        async function convertCurrency() {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const from_currency = document.getElementById('fromCurrency').value;
+            const to_currency = document.getElementById('toCurrency').value;
+            const resultDiv = document.getElementById('currencyResult');
+            
+            console.log('Converting currency:', amount, from_currency, 'to', to_currency);
+            try {
+                const result = await callTool('convert_currency', { amount, from_currency, to_currency });
+                console.log('Currency result:', result);
+                resultDiv.textContent = result;
+                resultDiv.className = 'result visible';
+            } catch (error) {
+                console.error('Currency error:', error);
+                resultDiv.textContent = `Error: ${error.message}`;
+                resultDiv.className = 'result visible error';
+            }
+        }
+        
+        // Check server status on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${BASE_URL}/`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache'
+                });
+                if (response.ok) {
+                    document.getElementById('statusDot').classList.add('connected');
+                    document.getElementById('statusText').textContent = 'Server: Online ✓';
+                } else {
+                    document.getElementById('statusText').textContent = `Server: Error ${response.status}`;
+                }
+            } catch (error) {
+                document.getElementById('statusText').textContent = `Server: Offline ✗ (${error.message})`;
+                console.error('Status check failed:', error);
+            }
+        });
+    </script>
+</body>
+</html>
