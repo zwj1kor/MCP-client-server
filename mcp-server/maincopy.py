@@ -5,8 +5,38 @@ from datetime import datetime
 import pytz
 from starlette.responses import Response
 from starlette.routing import Route
+from starlette.middleware.base import BaseHTTPMiddleware
 
 mcp = FastMCP("demo-mcp-server")
+
+# CORS Middleware to add headers to all responses
+class CORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        # Handle OPTIONS preflight
+        if request.method == "OPTIONS":
+            return Response(
+                status_code=200,
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Credentials": "true",
+                }
+            )
+        
+        # Process request
+        response = await call_next(request)
+        
+        # Add CORS headers to response
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        
+        return response
+
+# Add CORS middleware
+mcp.add_middleware(CORSMiddleware)
 
 # Store tool functions for direct HTTP access
 TOOL_FUNCTIONS = {}
@@ -175,6 +205,6 @@ def help() -> str:
 - convert_currency: Convert currencies"""
 
 if __name__ == "__main__":
-    # Run FastMCP server with streamable-http transport on port 8001
+    # Run FastMCP server with SSE transport on port 8001 (shows official FastMCP branding)
     # Bind to 0.0.0.0 to allow access from external browsers
-    mcp.run(transport="streamable-http", host="0.0.0.0", port=8001)
+    mcp.run(transport="sse", host="0.0.0.0", port=8001)
